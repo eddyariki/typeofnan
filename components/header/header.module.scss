@@ -1,0 +1,8 @@
+@import '../../styles/globals.scss';
+
+.container {
+  background-color: $light-lime-green;
+  width: 100vw;
+  height: 56px;
+  border-bottom: 2px $darker-lime-green;
+}

@@ -1,36 +1,39 @@
-import { COLLECTION_NAME } from "../../config/globals";
-import { FirestoreConverterInterface } from "../../interfaces/firebase/firestoreConverterInterface";
-import { PostMetadataAdapterInterface } from "../../interfaces/postMetadata/postMetadataAdapterInterface";
-import { FirestoreConverterPostMetadata, PostMetadata } from "../../post/post";
+import { FirestoreConverterInterface } from '../../interfaces/firebase/firestoreConverterInterface'
+import { PostMetadataAdapterInterface } from '../../interfaces/postMetadata/postMetadataAdapterInterface'
+import { FirestoreConverterPostMetadata, PostMetadata } from '../../interfaces/post/post'
 
-export class FirestorePostMetadataAdapter
-  implements PostMetadataAdapterInterface
-{
-  constructor(
-    private converter: FirestoreConverterInterface,
-    private collection: string
-  ) {}
+export class FirestorePostMetadataAdapter implements PostMetadataAdapterInterface {
+  constructor(private converter: FirestoreConverterInterface) {}
 
   get = async ({ id }: { id: string }): Promise<PostMetadata | undefined> => {
     const data = await this.converter.get({
-      collection: this.collection,
-      id,
-    });
+      id
+    })
+    if (!data) return undefined
 
-    if (!data) return undefined;
+    const firestoreConverterPostMetadata = data as FirestoreConverterPostMetadata
+    const processedData = this.process(firestoreConverterPostMetadata)
 
-    const firestoreConverterPostMetadata =
-      data as FirestoreConverterPostMetadata;
-
-    const processedData: PostMetadata = {
-      ...firestoreConverterPostMetadata,
-      createdAt: firestoreConverterPostMetadata.createdAt.seconds,
-    };
-
-    return processedData;
-  };
+    return processedData
+  }
 
   getAll = async (): Promise<PostMetadata[]> => {
-    return [{} as PostMetadata];
-  };
+    const firestoreConverterPostsMetadata = await this.converter.getAll()
+    if (firestoreConverterPostsMetadata.length == 0) return []
+    const postsData = firestoreConverterPostsMetadata.map((documentData) => {
+      const firestoreConverterPostMetadata = documentData.data() as FirestoreConverterPostMetadata
+      const processedData = this.process(firestoreConverterPostMetadata)
+      return processedData
+    })
+
+    return postsData
+  }
+
+  private process = (firestoreConverterPostMetadata: FirestoreConverterPostMetadata) => {
+    const processedData: PostMetadata = {
+      ...firestoreConverterPostMetadata,
+      createdAt: firestoreConverterPostMetadata.createdAt.seconds
+    }
+    return processedData
+  }
 }

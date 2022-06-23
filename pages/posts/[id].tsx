@@ -1,56 +1,78 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
-import { FirestorePostMetadataAdapter } from "../../lib/adapters/firebase/firestorePostMetadataAdapter";
-import { StoragePostMdFileAdapter } from "../../lib/adapters/firebase/storagePostMdFileAdapter";
-import { COLLECTION_NAME } from "../../lib/config/globals";
-import { firebaseApp } from "../../lib/converters/firebase/firebaseInit";
-import { FirestoreConverter } from "../../lib/converters/firebase/firestoreConverter";
-import { StorageConverter } from "../../lib/converters/firebase/storageConverter";
-import { PostMdFileInteractor } from "../../lib/interactors/post/postMdFileInteractor";
-import { PostMetadataInteractor } from "../../lib/interactors/post/postMetadataInteractor";
-import { PostConstructor } from "../../lib/presenters/post/postConstructor";
+import { PostMdFileInteractor } from '../../lib/interactors/post/postMdFileInteractor'
+import { PostMetadataInteractor } from '../../lib/interactors/post/postMetadataInteractor'
+import { ProcessedPost } from '../../lib/interfaces/post/post'
+import firestorePostMetadataAdapter from '../../lib/presenters/post/initializers/firestorePostMetadataAdapterInitializer'
+import { PostConstructor } from '../../lib/presenters/post/postConstructor'
+import storageAdapter from '../../lib/presenters/post/initializers/storagePostMdFileAdapterIntializer'
+import styles from './post.module.scss'
+import TitleBlock from './components/titleBlock'
+import { calculateReadTime } from '../../lib/presenters/post/calculateReadTime'
+import { convertUnixToDatetimeSting } from '../../lib/presenters/post/convertUnixToDatetimeString'
+import { PostMdFileParser } from '../../lib/presenters/post/postMdFileParser'
+import { UnifiedMdFileParser } from '../../lib/presenters/post/unifiedMdFileParser'
 
-const BlogPost = ({ tester }: { tester: string }) => {
-  return <></>;
-};
+const BlogPost = ({
+  processedPost,
+  readTime,
+  createdAtDatetimeString
+}: {
+  processedPost: ProcessedPost
+  readTime: string
+  createdAtDatetimeString: string
+}) => {
+  return (
+    <div className={styles.container}>
+      <TitleBlock
+        processedPost={processedPost}
+        readTime={readTime}
+        createdAtDatetimeString={createdAtDatetimeString}
+      />
+      <div className={styles.content}>
+        <div dangerouslySetInnerHTML={{ __html: processedPost?.processedMarkdownHTML }}></div>
+      </div>
+    </div>
+  )
+}
 
-export default BlogPost;
+export default BlogPost
 interface StaticProps {
   params: {
-    id: string;
-  };
+    id: string
+  }
 }
 export const getStaticProps = async ({ params }: StaticProps) => {
-  const { id } = params;
-  const db = getFirestore(firebaseApp);
-  const firestoreConverter = new FirestoreConverter(db);
-  const firestorePostMetadataAdapter = new FirestorePostMetadataAdapter(
-    firestoreConverter,
-    COLLECTION_NAME
-  );
-  const postMetadataInteractor = new PostMetadataInteractor(
-    firestorePostMetadataAdapter
-  );
-  const storage = getStorage(firebaseApp);
-  const storageConverter = new StorageConverter(storage);
-  const storageAdapter = new StoragePostMdFileAdapter(storageConverter);
-  const postMdfileInteractor = new PostMdFileInteractor(storageAdapter);
-
+  const { id } = params
+  const postMetadataInteractor = new PostMetadataInteractor(firestorePostMetadataAdapter)
+  const postMdfileInteractor = new PostMdFileInteractor(storageAdapter)
+  const postMdFileParser = new PostMdFileParser(new UnifiedMdFileParser())
   const postConstructor = new PostConstructor(
     postMetadataInteractor,
-    postMdfileInteractor
-  );
+    postMdfileInteractor,
+    postMdFileParser
+  )
 
-  const post = await postConstructor.get({ id });
+  const processedPost = await postConstructor.getProcessedPost({ id })
+  if (!processedPost) return { props: {} }
+
+  const readTime = calculateReadTime(processedPost.processedMarkdownHTML)
+  const createdAtDatetimeString = convertUnixToDatetimeSting(processedPost.createdAt)
+
   return {
-    props: { post },
-  };
-};
+    props: { processedPost, readTime, createdAtDatetimeString }
+  }
+}
 
 export const getStaticPaths = async () => {
+  const postMetadataInteractor = new PostMetadataInteractor(firestorePostMetadataAdapter)
+  const postsMetadata = await postMetadataInteractor.getAll()
   return {
-    paths: [{ params: { id: "" } }],
-    fallback: true,
-  };
-};
+    paths: postsMetadata.map((postMetadata) => {
+      return {
+        params: {
+          id: postMetadata.id
+        }
+      }
+    }),
+    fallback: true
+  }
+}

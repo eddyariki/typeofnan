@@ -1,11 +1,6 @@
-import { DocumentData } from "firebase/firestore";
+import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 
 export interface FirestoreConverterInterface {
-  get: ({
-    collection,
-    id,
-  }: {
-    collection: string;
-    id: string;
-  }) => Promise<DocumentData | undefined>;
+  get: ({ id }: { id: string }) => Promise<DocumentData | undefined>
+  getAll: () => Promise<QueryDocumentSnapshot<DocumentData>[]>
 }

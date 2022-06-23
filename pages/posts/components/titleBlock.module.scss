@@ -1,0 +1,22 @@
+@mixin center {
+  justify-self: center;
+  align-self: center;
+}
+.container {
+  width: 100vw;
+  min-height: 248px;
+  background-color: rgb(27, 27, 27);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  grid-template-columns: 1fr;
+}
+
+.title {
+  @include center;
+  color: rgb(197, 197, 197);
+}
+
+.details {
+  @include center;
+  color: rgb(123, 123, 123);
+}

@@ -1,13 +1,18 @@
-import { FirestoreConverterInterface } from "../../interfaces/firebase/firestoreConverterInterface";
-import { doc, Firestore, getDoc } from "firebase/firestore";
+import { FirestoreConverterInterface } from '../../interfaces/firebase/firestoreConverterInterface'
+import { collection, doc, Firestore, getDoc, getDocs } from 'firebase/firestore'
 
 export class FirestoreConverter implements FirestoreConverterInterface {
-  constructor(private db: Firestore) {}
+  constructor(private db: Firestore, private collectionName: string) {}
 
-  get = async ({ collection, id }: { collection: string; id: string }) => {
-    const docRef = doc(this.db, collection, id);
-    const docSnap = await getDoc(docRef);
+  get = async ({ id }: { id: string }) => {
+    const docRef = doc(this.db, this.collectionName, id)
+    const docSnap = await getDoc(docRef)
 
-    return docSnap.data();
-  };
+    return docSnap.data()
+  }
+
+  getAll = async () => {
+    const querySnapshot = await getDocs(collection(this.db, this.collectionName))
+    return querySnapshot.docs
+  }
 }

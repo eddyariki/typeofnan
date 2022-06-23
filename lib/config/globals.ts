@@ -1,1 +1,1 @@
-export const COLLECTION_NAME = "posts";
+export const COLLECTION_NAME = 'test'
